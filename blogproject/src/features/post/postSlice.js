@@ -1,9 +1,10 @@
 import { createSlice, nanoid, createAsyncThunk } from "@reduxjs/toolkit";
 import { sub } from "date-fns";
 
-import axios from 'axios'
+import axios from "axios";
+import { fetchUsers } from "../users/usersSlice";
 
-const POST_URL = 'https://jsonplaceholder.typicode.com/posts'
+const POST_URL = "https://jsonplaceholder.typicode.com/posts";
 
 // const initialState = [
 //   {
@@ -35,21 +36,32 @@ const POST_URL = 'https://jsonplaceholder.typicode.com/posts'
 //   },
 // ];
 
-export const fetchPosts = createAsyncThunk('posts/fetchPosts', async ()=> {
+export const fetchPosts = createAsyncThunk("posts/fetchPosts", async () => {
+  try {
+    const resp = await axios.get(POST_URL);
+    return resp.data;
+  } catch (error) {
+    return error.message;
+  }
+});
 
+export const addNewPost = createAsyncThunk(
+  "posts/addNewPost",
+  async (initialPost) => {
     try {
-        const resp = await axios.get(POST_URL);
-        return [...resp.data]
+      const resp = await axios.post(POST_URL, initialPost);
+      return resp.data;
     } catch (error) {
-        return error.message
+      return error.message;
     }
-})
+  }
+);
 
-const initialState= {
-    posts:[],
-    status: 'idle', //'idle' | 'loading' | 'succeeded'| 'failed'
-    error: null
-}
+const initialState = {
+  posts: [],
+  status: "idle", //'idle' | 'loading' | 'succeeded'| 'failed'
+  error: null,
+};
 
 const postsSlice = createSlice({
   name: "posts",
@@ -76,43 +88,57 @@ const postsSlice = createSlice({
             },
           },
         };
-
       },
     },
     addReaction: (state, action) => {
-        const existingPost = state.posts.find( post => post.id === action.payload.postId);
-        if (existingPost){
-            existingPost.reactions[action.payload.reaction]++;
-        }
-    }
+      const existingPost = state.posts.find(
+        (post) => post.id === action.payload.postId
+      );
+      if (existingPost) {
+        existingPost.reactions[action.payload.reaction]++;
+      }
+    },
   },
-  extraReducers(builder){
-        builder
-            .addCase(fetchPosts.pending, (state,action) =>{
-                state.status= 'loading'
-            })
-            .addCase(fetchPosts.fulfilled, (state, action) =>{
-                state.status = 'succeeded'
-                //adding date and reactions
-                let min = 1;
-                const loadedPosts = action.payload.map(post=> {
-                    post.date = sub(new Date(), {minutes: min++}).toISOString();
-                    post.reactions = {
-                        thumbsUp: 0,
-                        wow: 0,
-                        hearth: 0,
-                        rocket: 0,
-                        coffee: 0
-                    }
-                    return post;
-                });
-                //add any fetched post to the array
-                state.posts = state.posts.concat(loadedPosts)
-            })
-            .addCase(fetchPosts.rejected, (state, action) =>{
-                state.status = 'failed';
-            })
-  }
+  extraReducers(builder) {
+    builder
+      .addCase(fetchPosts.pending, (state, action) => {
+        state.status = "loading";
+      })
+      .addCase(fetchPosts.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        //adding date and reactions
+        let min = 1;
+        const loadedPosts = action.payload.map((post) => {
+          post.date = sub(new Date(), { minutes: min++ }).toISOString();
+          post.reactions = {
+            thumbsUp: 0,
+            wow: 0,
+            hearth: 0,
+            rocket: 0,
+            coffee: 0,
+          };
+          return post;
+        });
+        //add any fetched post to the array
+        state.posts = state.posts.concat(loadedPosts);
+      })
+      .addCase(fetchPosts.rejected, (state, action) => {
+        state.status = "failed";
+      })
+      .addCase(fetchUsers.fulfilled, (state, action) => {
+        action.payload.userId = Number(action.payload.userId);
+        action.payload.date = new Date().toISOString();
+        action.payload.reactions = {
+          thumbsUp: 0,
+          wow: 0,
+          hearth: 0,
+          rocket: 0,
+          coffee: 0,
+        };
+        console.log(action.payload);
+        state.posts.push(action.payload);
+      });
+  },
 });
 
 export const selectAllPosts = (state) => state.posts.posts;

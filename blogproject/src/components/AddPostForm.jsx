@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import { addPost } from "../features/post/postSlice";
+import { addPost , addNewPost } from "../features/post/postSlice";
 import { selectAllUsers } from "../features/users/usersSlice";
 
 function AddPostForm() {
@@ -9,9 +9,11 @@ function AddPostForm() {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-
+  
   const [userId, setUserId] = useState("");
   const users = useSelector(selectAllUsers);
+  
+  const [addRequestStatus, setAddRequestStatus] = useState('idle')
 
   function onTitleChanged(e) {
     setTitle(e.target.value);
@@ -25,16 +27,22 @@ function AddPostForm() {
     setUserId(e.target.value);
   }
 
+  const canSave = Boolean(title) && Boolean(content) && Boolean(userId) && addRequestStatus === 'idle';
+
   function onSubmit() {
-    if (title && content) {
-      dispatch(addPost(title, content, userId));
-      setTitle("");
-      setContent("");
+    if (canSave) {
+      try {
+        setAddRequestStatus('pending')
+        
+      } catch (error) {
+        
+      } finally{
+        setAddRequestStatus('idle')
+      }
     }
   }
 
 
-  const canSave = Boolean(title) && Boolean(content) && Boolean(userId);
 
   const usersOptions = users.map((user) => (
     <option key={user.id} value={user.id}>
